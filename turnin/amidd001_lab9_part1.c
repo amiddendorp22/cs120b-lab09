@@ -58,11 +58,11 @@ void TimerSet(unsigned long M)
 
 unsigned char threeLEDs = 0;
 unsigned char blinkingLED = 0;
-unsigned char speakerPin = 0;
+
 enum ThreeLEDsSM {Bit0_State, Bit1_State, Bit2_State} Three_State;
 enum BlinkingLEDsSM {Bit3On_State, Bit3Off_State} Blinking_State;
 enum CombineLEDsSM {Output_State} Combine_State;
-enum SpeakerToggleSM {SpeakerOn_State, SpeakerOff_State} Speaker_State;
+
 void TickFct_ThreeLEDs()
 {
 	switch(Three_State)
@@ -137,46 +137,15 @@ void TickFct_CombineLEDs()
 	switch(Combine_State)
 	{
 		case(Output_State):
-			PORTB = blinkingLED + threeLEDs + speakerPin;
+			PORTB = blinkingLED + threeLEDs;
 			break;
 		default:
 			break;
 	}
 }
 
-void TickFct_Speaker()
-{
-	unsigned char tmpA = ~PINA & 0x04;
-	switch(Speaker_State)
-	{
-		case(SpeakerOff_State):
-			if(tmpA == 0x04)
-			{
-				Speaker_State = SpeakerOn_State;
-			}
-			break;
-		case(SpeakerOn_State):
-			if(tmpA !=  0x04)
-			{
-				Speaker_State = SpeakerOff_State;
-			}
-			break;
-		default:
-			break;
-	}
 
-	switch(Speaker_State)
-	{
-		case(SpeakerOff_State):
-			speakerPin = 0x00;
-			break;
-		case(SpeakerOn_State):
-			speakerPin = 0x08;
-			break;
-		default:
-			break;
-	}
-}
+
 
 
 int main(void) {
@@ -184,43 +153,21 @@ int main(void) {
 	DDRA = 0xFF; PORTA = 0xFF;
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
-	const unsigned long timerPeriod = 1; //would have used 100 but it specifically says not to use GCD
-	TimerSet(timerPeriod);
+
+	TimerSet(1000);
 	TimerOn();
 	Three_State = Bit0_State;
 	Blinking_State = Bit3On_State;
 	Combine_State = Output_State;
 
-	unsigned long Three_elapsedTime = 300;
-	unsigned long Blink_elapsedTime = 1000;
-	unsigned long Speaker_elapsedTime = 2;
+
     while (1)
     {
-	if(Three_elapsedTime >= 300)
-	{
-		TickFct_ThreeLEDs();
-		Three_elapsedTime = 0;
-		TickFct_CombineLEDs();
-	}
-
-	if(Blink_elapsedTime >= 1000)
-	{
-		TickFct_BlinkingLEDs();
-		Blink_elapsedTime = 0;
-		TickFct_CombineLEDs();
-	}
-
-	if(Speaker_elapsedTime >= 2)
-	{
-		TickFct_Speaker();
-		Speaker_elapsedTime = 0;
-		TickFct_CombineLEDs();
-	}
+	TickFct_ThreeLEDs();
+	TickFct_BlinkingLEDs();
+	TickFct_CombineLEDs();
 	while(!TimerFlag){}
-	TimerFlag = 0;
-	Three_elapsedTime += timerPeriod;
-	Blink_elapsedTime += timerPeriod;
-	Speaker_elapsedTime += timerPeriod;	
+	TimerFlag = 0;	
     }
     return 1;
 }
