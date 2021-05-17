@@ -22,7 +22,7 @@ unsigned long _avr_timer_cntcurr = 0;
 void TimerOn()
 {
 	TCCR1B = 0x0B;
-	OCRA1 = 125;
+	OCR1A = 125;
 	TIMSK1 = 0x02;
 	TCNT1 = 0;
 	_avr_timer_cntcurr = _avr_timer_M;
@@ -62,7 +62,7 @@ unsigned char speakerPin = 0;
 enum ThreeLEDsSM {Bit0_State, Bit1_State, Bit2_State} Three_State;
 enum BlinkingLEDsSM {Bit3On_State, Bit3Off_State} Blinking_State;
 enum CombineLEDsSM {Output_State} Combine_State;
-enum SpeakerToggleSM {SpeakerOn_State, SpeakerOff_State} Speaker_State;
+enum SpeakerToggleSM {SpeakerOn_State, SpeakerOff_State, Wait_State} Speaker_State;
 void TickFct_ThreeLEDs()
 {
 	switch(Three_State)
@@ -154,12 +154,16 @@ void TickFct_Speaker()
 			{
 				Speaker_State = SpeakerOn_State;
 			}
-			break;
-		case(SpeakerOn_State):
-			if(tmpA !=  0x04)
+			else
 			{
 				Speaker_State = SpeakerOff_State;
 			}
+			break;
+		case(SpeakerOn_State):
+			Speaker_State = Wait_State;
+			break;
+		case(Wait_State):
+			Speaker_State = SpeakerOff_State;
 			break;
 		default:
 			break;
@@ -171,7 +175,10 @@ void TickFct_Speaker()
 			speakerPin = 0x00;
 			break;
 		case(SpeakerOn_State):
-			speakerPin = 0x08;
+			speakerPin = 0x10;
+			break;
+		case(Wait_State):
+			speakerPin = 0x10;
 			break;
 		default:
 			break;
@@ -190,7 +197,7 @@ int main(void) {
 	Three_State = Bit0_State;
 	Blinking_State = Bit3On_State;
 	Combine_State = Output_State;
-
+	Speaker_State = SpeakerOff_State;
 	unsigned long Three_elapsedTime = 300;
 	unsigned long Blink_elapsedTime = 1000;
 	unsigned long Speaker_elapsedTime = 2;
@@ -200,22 +207,19 @@ int main(void) {
 	{
 		TickFct_ThreeLEDs();
 		Three_elapsedTime = 0;
-		TickFct_CombineLEDs();
 	}
-
 	if(Blink_elapsedTime >= 1000)
 	{
 		TickFct_BlinkingLEDs();
 		Blink_elapsedTime = 0;
-		TickFct_CombineLEDs();
 	}
 
 	if(Speaker_elapsedTime >= 2)
 	{
 		TickFct_Speaker();
 		Speaker_elapsedTime = 0;
-		TickFct_CombineLEDs();
 	}
+	TickFct_CombineLEDs();
 	while(!TimerFlag){}
 	TimerFlag = 0;
 	Three_elapsedTime += timerPeriod;
